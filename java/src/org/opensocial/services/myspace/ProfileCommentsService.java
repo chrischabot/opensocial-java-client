@@ -15,35 +15,123 @@
 
 package org.opensocial.services.myspace;
 
-import org.opensocial.Request;
-import org.opensocial.models.myspace.Comment;
-import org.opensocial.services.Service;
+import java.util.ArrayList;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.opensocial.client.OpenSocialHttpResponseMessage;
+import org.opensocial.client.OpenSocialRequest;
+import org.opensocial.client.OpenSocialRequestException;
+import org.opensocial.data.MySpaceComment;
+import org.opensocial.services.OpenSocialService;
 
 /**
- * OpenSocial API class for MySpace profile comment requests; contains static
- * methods for fetching MySpace profile comments.
+ * ProfileCommentsService - service class for profilecomments endpoint.
+ * @author jle.edwards@gmail.com (Jesse Edwards)
  *
- * @author Jason Cooper
  */
-public class ProfileCommentsService extends Service {
-
-  private static final String restTemplate =
-    "profilecomments/{guid}/{groupId}";
-
+public class ProfileCommentsService extends OpenSocialService {
+  
   /**
-   * Returns a new Request instance which, when submitted, fetches the current
-   * viewer's profile comments and makes this data available as a List of
-   * Comment objects.
-   *
-   * @return new Request object to fetch the current viewer's profile comments
-   * @see    Comment
+   * getSupportedFields - sends request for supported fields.
+   * @return OpenSocialRequest 
+   * @throws OpenSocialRequestException
    */
-  public static Request getComments() {
-    Request request = new Request(restTemplate, null, "GET");
-    request.setModelClass(Comment.class);
-    request.setGroupId(SELF);
-    request.setGuid(ME);
+  public OpenSocialRequest getSupportedFields() 
+      throws OpenSocialRequestException {
+    throw new OpenSocialRequestException("This method is not supported.");
+  }
+  
+  /**
+   * get - method used for fetching items in this service.
+   * @param Map<String, String> params 
+   * @return OpenSocialRequest
+   * @throws OpenSocialRequestException
+   */
+  public OpenSocialRequest get(Map<String, String> params) 
+      throws OpenSocialRequestException {
+    
+    if(!params.containsKey("groupId"))
+      params.put("groupId", "@self");
+    if(!params.containsKey("userId"))
+      params.put("groupId", "@me");
+    
+    OpenSocialRequest r = new OpenSocialRequest("profilecomments", 
+        "GET", "profilecomments.get");
+    _addParamsToRequest(r, params);
+    return r;
+  }
+  
+  /**
+   * update - method used for updating items in this service.
+   * @param Map<String, String> params 
+   * @return OpenSocialRequest
+   * @throws OpenSocialRequestException
+   */
+  public OpenSocialRequest update(Map<String, String> params) 
+      throws OpenSocialRequestException {
+    throw new OpenSocialRequestException("This method is not supported.");
+  }
+  
+  /**
+   * create - method used for creating items in this service.
+   * @param Map<String, String> params 
+   * @return OpenSocialRequest
+   * @throws OpenSocialRequestException
+   */
+  public OpenSocialRequest create(Map<String, String> params) 
+      throws OpenSocialRequestException {
+    throw new OpenSocialRequestException("This method is not supported.");
+  }
+  
+  /**
+   * delete - method used for deleting items in this service.
+   * @param Map<String, String> params 
+   * @return OpenSocialRequest
+   * @throws OpenSocialRequestException
+   */
+  public OpenSocialRequest delete(Map<String, String> params) 
+      throws OpenSocialRequestException {
+    throw new OpenSocialRequestException("This method is not supported.");
+  }
+  
+  /**
+   * convertResponse - function used to convert response json into the expected
+   * collection of objects or object.
+   */
+  public void formatResponse(OpenSocialHttpResponseMessage response) {    
 
-    return request;
+    super.formatResponse(response);
+    
+    String data = response.getOpenSocialDataString();
+    MySpaceComment item = new MySpaceComment();
+    ArrayList<MySpaceComment> collection = new ArrayList<MySpaceComment>();
+
+    try{
+      if(data.startsWith("{") && data.endsWith("}")) {
+        JSONObject obj = new JSONObject(data);
+        
+        if(obj.has("entry")) {
+          if(obj.getString("entry").startsWith("[") && 
+              obj.getString("entry").endsWith("]")) {
+          
+            JSONArray entry = obj.getJSONArray("entry");
+          
+            for(int i=0; i<entry.length(); i++) {
+              item = new MySpaceComment(entry.getJSONObject(i).toString());
+              collection.add(item);
+            }
+          }else {
+            collection.add(new MySpaceComment(obj.getString("entry")));
+          }
+          response.setCollection(collection);
+        }
+      }
+    }catch(JSONException e) {
+      e.printStackTrace();
+      System.out.println(data);
+    }
   }
 }
